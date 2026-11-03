@@ -1,0 +1,28 @@
+# Secretos y entornos (nunca se versionan)
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Datos locales
+*.db
+*.sqlite3
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

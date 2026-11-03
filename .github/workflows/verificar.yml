@@ -1,0 +1,37 @@
+name: verificar
+
+# Se ejecuta en cada Pull Request hacia main. No corre en push a main,
+# para que el repositorio no muestre rojo mientras el grupo avanza.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reglas:
+    name: Reglas de estructura y arquitectura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar estructura (informa lo pendiente, falla en lo incumplido)
+        run: bash scripts/verificar_estructura.sh
+
+  pruebas:
+    name: Pruebas de los proyectos Python presentes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar uv
+        run: python3 -m pip install --user uv && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Ejecutar pytest en cada proyecto con pyproject.toml
+        run: |
+          fallo=0
+          for d in servicios/*/ plataforma/descubrimiento plataforma/balanceador config-repo tests; do
+            [ -f "$d/pyproject.toml" ] || continue
+            echo "::group::pytest en $d"
+            (cd "$d" && uv sync && uv run pytest -q) || fallo=1
+            echo "::endgroup::"
+          done
+          exit $fallo

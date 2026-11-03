@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruleta de asignación · Parcial Corte 1 · MercadoAndino</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --texto:#1b2430; --suave:#5b6675; --borde:#d9dee6;
+  --acento:#0b6e4f; --acento-texto:#ffffff; --aviso:#8a5a00; --sombra:0 1px 3px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-tema="claro"]){
+    --bg:#0f141a; --panel:#18202a; --texto:#e8edf3; --suave:#9aa6b5; --borde:#2b3644;
+    --acento:#35c08f; --acento-texto:#06281d; --aviso:#e0b04a; --sombra:none;
+  }
+}
+:root[data-tema="oscuro"]{
+  --bg:#0f141a; --panel:#18202a; --texto:#e8edf3; --suave:#9aa6b5; --borde:#2b3644;
+  --acento:#35c08f; --acento-texto:#06281d; --aviso:#e0b04a; --sombra:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--texto);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:20px 16px 4px;max-width:1100px;margin:0 auto}
+h1{font-size:1.4rem;margin:0 0 4px}
+header p{margin:0;color:var(--suave)}
+main{max-width:1100px;margin:0 auto;padding:12px 16px 40px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){main{grid-template-columns:minmax(0,480px) minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--borde);border-radius:12px;padding:16px;box-shadow:var(--sombra)}
+.panel h2{font-size:1.05rem;margin:0 0 10px}
+.rueda-caja{display:flex;flex-direction:column;align-items:center;gap:12px}
+.rueda-wrap{position:relative;width:100%;max-width:440px;aspect-ratio:1/1}
+canvas{width:100%;height:100%;display:block}
+.puntero{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;
+  border-left:14px solid transparent;border-right:14px solid transparent;border-top:26px solid var(--texto);filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+button{font:inherit;border-radius:8px;border:1px solid var(--borde);background:var(--panel);color:var(--texto);padding:10px 16px;cursor:pointer;min-height:44px}
+button.primario{background:var(--acento);color:var(--acento-texto);border-color:var(--acento);font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--acento);outline-offset:2px}
+.fila{display:flex;flex-wrap:wrap;gap:8px}
+.unidad{border:1px dashed var(--borde);border-radius:10px;padding:12px;margin-bottom:12px}
+.unidad .etq{font-size:.8rem;color:var(--suave);text-transform:uppercase;letter-spacing:.04em}
+.unidad .nombre{font-weight:700;font-size:1.05rem}
+.unidad ul{margin:6px 0 0;padding-left:20px}
+.chip{display:inline-block;font-size:.75rem;border:1px solid var(--borde);border-radius:999px;padding:0 8px;margin-left:6px;color:var(--suave)}
+.ganador{font-size:1.25rem;font-weight:700;color:var(--acento);min-height:1.8em}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--borde);vertical-align:top}
+th{color:var(--suave);font-weight:600}
+label{display:block;font-weight:600;margin:8px 0 4px}
+textarea,input[type=text]{width:100%;font:inherit;color:var(--texto);background:var(--bg);border:1px solid var(--borde);border-radius:8px;padding:8px}
+textarea{min-height:150px;resize:vertical}
+.nota{font-size:.85rem;color:var(--suave)}
+.aviso{color:var(--aviso);font-size:.9rem;min-height:1.2em}
+.semilla{font-family:ui-monospace,Menlo,Consolas,monospace}
+@media print{ .noprint{display:none!important} body{background:#fff;color:#000} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ruleta de asignación del Parcial · Corte 1 (15 %)</h1>
+  <p>Lenguajes de Programación para Aplicaciones de Nube · caso MercadoAndino · entrega: martes 10 de noviembre de 2026, 21:00 (hora de Bogotá)</p>
+</header>
+
+<main>
+  <section class="panel rueda-caja" aria-label="Ruleta">
+    <div class="rueda-wrap">
+      <div class="puntero" aria-hidden="true"></div>
+      <canvas id="lienzo" width="880" height="880" role="img" aria-label="Ruleta con los estudiantes que aún no tienen paquete"></canvas>
+    </div>
+    <div class="ganador" id="ganador" aria-live="polite"></div>
+    <div class="fila noprint">
+      <button class="primario" id="girar">Girar</button>
+      <button id="reiniciar">Reiniciar sorteo</button>
+    </div>
+    <p class="aviso" id="aviso" role="status"></p>
+  </section>
+
+  <div style="display:grid;gap:16px;align-content:start">
+    <section class="panel" aria-label="Paquete en sorteo">
+      <h2>Paquete en sorteo</h2>
+      <div class="unidad" id="unidad"></div>
+      <p class="nota">Cada paquete reúne una API y una tarea de plataforma con la misma carga (7 puntos de dificultad), de modo que todos los estudiantes reciben trabajo equivalente. El paquete se entrega al estudiante que indique la ruleta; quien ya tiene paquete sale de la rueda.</p>
+    </section>
+
+    <section class="panel" aria-label="Resultados">
+      <h2>Asignaciones</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>#</th><th>Estudiante</th><th>Paquete y acciones</th></tr></thead>
+          <tbody id="resultados"><tr><td colspan="3" class="nota">Aún no hay asignaciones.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="fila noprint" style="margin-top:12px">
+        <button id="copiar" disabled>Copiar como Markdown</button>
+        <button id="descargar" disabled>Descargar JSON</button>
+        <button id="imprimir" disabled>Imprimir</button>
+      </div>
+      <p class="nota" id="auditoria"></p>
+    </section>
+
+    <section class="panel noprint" aria-label="Configuración">
+      <h2>Configuración</h2>
+      <label for="lista">Estudiantes (uno por línea; 6 = reparto por paquetes, 12 = reparto por acciones)</label>
+      <textarea id="lista" spellcheck="false"></textarea>
+      <label for="semilla">Semilla del sorteo (opcional)</label>
+      <input type="text" id="semilla" class="semilla" placeholder="vacío = se genera una semilla aleatoria" autocomplete="off">
+      <p class="nota">La semilla hace el sorteo reproducible: con la misma lista y la misma semilla se obtiene exactamente el mismo resultado. Anótela en <code>docs/ASIGNACIONES.md</code> como constancia de auditoría.</p>
+      <div class="fila"><button id="aplicar">Aplicar lista y semilla</button></div>
+    </section>
+  </div>
+</main>
+
+<script>
+"use strict";
+/* ------------------------------------------------------------------ datos */
+const ACCIONES = {
+  A01:{t:"ms-catalogo",            tipo:"API core",            p:3},
+  A02:{t:"ms-inventario",          tipo:"API core",            p:3},
+  A03:{t:"ms-pagos",               tipo:"API core",            p:4},
+  A04:{t:"ms-pedidos",             tipo:"API compuesta",       p:5},
+  A05:{t:"bff-web",                tipo:"API de canal (BFF)",  p:3},
+  A06:{t:"ms-confiabilidad",       tipo:"API core",            p:3},
+  A07:{t:"config-repo (Git)",      tipo:"Plataforma",          p:2},
+  A08:{t:"Consul y descubrimiento",tipo:"Plataforma",          p:4},
+  A09:{t:"Balanceador de carga",   tipo:"Plataforma",          p:4},
+  A10:{t:"Pruebas y CI",           tipo:"Calidad",             p:4},
+  A11:{t:"Arquitectura (C4, UML, ADR)", tipo:"Documentación",  p:3},
+  A12:{t:"Integración E2E y Docker Compose", tipo:"Plataforma",p:4}
+};
+const PAQUETES = [
+  {id:"P1", acciones:["A04","A07"]},
+  {id:"P2", acciones:["A03","A11"]},
+  {id:"P3", acciones:["A02","A08"]},
+  {id:"P4", acciones:["A01","A12"]},
+  {id:"P5", acciones:["A05","A09"]},
+  {id:"P6", acciones:["A06","A10"]}
+];
+const LISTA_INICIAL = [
+  "Carlos Andrés Wilches Guerra",
+  "Andrés Camilo Cortés Vela",
+  "Baldomiro Rafael Barrera Osorio",
+  "Johan Stiwar Moreno Hurtado",
+  "Juan Camilo Malpica Silva",
+  "Allan Tovar Orozco"
+];
+const COLORES = ["#0b6e4f","#b4540a","#1d4ed8","#9d174d","#6d28d9","#0f766e","#a16207","#be123c","#0369a1","#4d7c0f","#7e22ce","#c2410c"];
+
+/* ------------------------------------------------------------------ PRNG con semilla */
+function xmur3(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
+  return function(){h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return(h^=h>>>16)>>>0;};}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function semillaAleatoria(){const b=new Uint32Array(2);crypto.getRandomValues(b);return b[0].toString(16).padStart(8,"0")+b[1].toString(16).padStart(8,"0");}
+
+/* ------------------------------------------------------------------ estado */
+const $ = id => document.getElementById(id);
+const lienzo = $("lienzo"), ctx = lienzo.getContext("2d");
+let estudiantes=[], pendientes=[], unidades=[], asignaciones=[], indice=0;
+let rot=0, girando=false, semilla="", azar=null;
+const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function normalizar(n){return n.trim().replace(/\s+/g," ").toLowerCase().split(" ").map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");}
+function listaDeTexto(t){const v=t.split(/\n/).map(normalizar).filter(Boolean);return v;}
+
+function nombreUnidad(u){return u.id+" · "+u.acciones.map(a=>ACCIONES[a].t).join(" + ");}
+function puntos(u){return u.acciones.reduce((s,a)=>s+ACCIONES[a].p,0);}
+
+function iniciar(){
+  $("aviso").textContent="";
+  estudiantes = listaDeTexto($("lista").value);
+  const n = estudiantes.length;
+  if(new Set(estudiantes.map(e=>e.toLowerCase())).size!==n){ $("aviso").textContent="Hay nombres repetidos en la lista."; }
+  if(n===6){
+    unidades = PAQUETES.map(p=>({id:p.id, acciones:p.acciones}));
+  }else if(n===12){
+    unidades = Object.keys(ACCIONES).map(a=>({id:a, acciones:[a]}));
+  }else{
+    unidades=[]; $("aviso").textContent="La lista debe tener 6 estudiantes (paquetes de 2 acciones) o 12 (una acción por estudiante). Actualmente hay "+n+".";
+  }
+  semilla = $("semilla").value.trim() || semillaAleatoria();
+  $("semilla").value = semilla;
+  azar = mulberry32(xmur3(semilla)());
+  pendientes = estudiantes.slice(); asignaciones=[]; indice=0; rot=0; girando=false;
+  $("ganador").textContent="";
+  pintarTodo();
+}
+
+/* ------------------------------------------------------------------ dibujo */
+function recortar(texto,maxPx){
+  let s=texto; ctx.font="600 "+tam+"px system-ui,sans-serif";
+  while(ctx.measureText(s).width>maxPx && s.length>4){s=s.slice(0,-1);}
+  return s===texto?s:s.trimEnd()+"…";
+}
+let tam=26;
+function dibujar(){
+  const W=lienzo.width, R=W/2-12, cx=W/2, cy=W/2;
+  ctx.clearRect(0,0,W,W);
+  const n=pendientes.length;
+  if(n===0){
+    ctx.fillStyle=getComputedStyle(document.body).color; ctx.font="600 34px system-ui,sans-serif"; ctx.textAlign="center";
+    ctx.fillText(estudiantes.length&&unidades.length?"Sorteo completo":"Sin estudiantes",cx,cy); return;
+  }
+  const paso=2*Math.PI/n;
+  tam = n>8?22:n>5?26:30;
+  for(let i=0;i<n;i++){
+    const a0=rot+i*paso, a1=a0+paso;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
+    ctx.fillStyle=COLORES[estudiantes.indexOf(pendientes[i])%COLORES.length]; ctx.fill();
+    ctx.strokeStyle="#ffffff"; ctx.lineWidth=4; ctx.stroke();
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(a0+paso/2); ctx.textAlign="right"; ctx.textBaseline="middle";
+    ctx.fillStyle="#ffffff"; ctx.font="600 "+tam+"px system-ui,sans-serif";
+    ctx.fillText(recortar(pendientes[i],R*0.72),R-22,0); ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(cx,cy,34,0,2*Math.PI); ctx.fillStyle="#ffffff"; ctx.fill(); ctx.strokeStyle="#00000033"; ctx.lineWidth=2; ctx.stroke();
+}
+
+function pintarUnidad(){
+  const caja=$("unidad");
+  if(!unidades.length){caja.innerHTML='<span class="nota">Configure la lista de estudiantes.</span>';return;}
+  if(indice>=unidades.length){caja.innerHTML='<div class="nombre">Todos los paquetes fueron asignados.</div>';return;}
+  const u=unidades[indice];
+  const items=u.acciones.map(a=>`<li><strong>${a}</strong> · ${ACCIONES[a].t}<span class="chip">${ACCIONES[a].tipo}</span><span class="chip">${ACCIONES[a].p} pts</span></li>`).join("");
+  caja.innerHTML=`<div class="etq">Sorteo ${indice+1} de ${unidades.length}</div><div class="nombre">${u.id}${u.acciones.length>1?" · carga "+puntos(u)+" pts":""}</div><ul>${items}</ul>`;
+}
+function pintarResultados(){
+  const tb=$("resultados");
+  if(!asignaciones.length){tb.innerHTML='<tr><td colspan="3" class="nota">Aún no hay asignaciones.</td></tr>';}
+  else tb.innerHTML=asignaciones.map((a,i)=>{
+    const acc=a.unidad.acciones.map(x=>`${x} ${ACCIONES[x].t}`).join("<br>");
+    return `<tr><td>${i+1}</td><td><strong>${a.estudiante}</strong></td><td>${a.unidad.id}<br><span class="nota">${acc}</span></td></tr>`;}).join("");
+  const fin = unidades.length>0 && asignaciones.length===unidades.length;
+  ["copiar","descargar","imprimir"].forEach(b=>$(b).disabled=!fin);
+  $("girar").disabled = girando || !unidades.length || fin;
+  $("auditoria").innerHTML = unidades.length ? `Semilla: <span class="semilla">${semilla}</span> · lista de ${estudiantes.length} estudiantes · generado en el navegador del docente.` : "";
+}
+function pintarTodo(){dibujar();pintarUnidad();pintarResultados();}
+
+/* ------------------------------------------------------------------ giro */
+function girar(){
+  if(girando||indice>=unidades.length||!pendientes.length) return;
+  girando=true; $("girar").disabled=true; $("ganador").textContent="";
+  const n=pendientes.length, paso=2*Math.PI/n;
+  const k=Math.floor(azar()*n);                       // resultado decidido por el PRNG con semilla
+  const jitter=(Math.random()-.5)*paso*0.7;           // solo cosmético, queda dentro de la porción
+  const destino=-Math.PI/2-(k+.5)*paso+jitter;
+  const mod=(x)=>((x%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  const delta=(reducir?0:5)*2*Math.PI+mod(destino-rot);
+  const inicio=rot, dur=reducir?500:4600, t0=performance.now();
+  const ease=t=>1-Math.pow(1-t,3);
+  function paso_(ahora){
+    const t=Math.min(1,(ahora-t0)/dur);
+    rot=inicio+delta*ease(t); dibujar();
+    if(t<1){requestAnimationFrame(paso_);return;}
+    const ganador=pendientes[k];
+    asignaciones.push({estudiante:ganador, unidad:unidades[indice]});
+    $("ganador").textContent=ganador+" → "+nombreUnidad(unidades[indice]);
+    pendientes.splice(k,1); indice++; rot=0; girando=false;
+    pintarUnidad(); pintarResultados();
+    setTimeout(dibujar,900);
+  }
+  requestAnimationFrame(paso_);
+}
+
+/* ------------------------------------------------------------------ exportar */
+function markdown(){
+  const f=new Date().toISOString();
+  let md="# Asignaciones del Parcial · Corte 1\n\n";
+  md+=`- Semilla del sorteo: \`${semilla}\`\n- Generado: ${f}\n- Estudiantes (${estudiantes.length}): ${estudiantes.join("; ")}\n\n`;
+  md+="| # | Estudiante | Paquete | Acciones | Puntos |\n|---|---|---|---|---|\n";
+  asignaciones.forEach((a,i)=>{
+    md+=`| ${i+1} | ${a.estudiante} | ${a.unidad.id} | ${a.unidad.acciones.map(x=>x+" "+ACCIONES[x].t).join(" + ")} | ${puntos(a.unidad)} |\n`;});
+  return md+"\n";
+}
+async function copiar(){
+  const md=markdown();
+  try{await navigator.clipboard.writeText(md);$("aviso").textContent="Markdown copiado al portapapeles.";}
+  catch(e){const t=document.createElement("textarea");t.value=md;document.body.appendChild(t);t.select();
+    try{document.execCommand("copy");$("aviso").textContent="Markdown copiado.";}catch(_){$("aviso").textContent="No se pudo copiar; use Descargar JSON.";}
+    t.remove();}
+}
+function descargar(){
+  const obj={semilla,generado:new Date().toISOString(),estudiantes,
+    asignaciones:asignaciones.map(a=>({estudiante:a.estudiante,paquete:a.unidad.id,acciones:a.unidad.acciones.map(x=>({id:x,nombre:ACCIONES[x].t,puntos:ACCIONES[x].p}))}))};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}));
+  const a=document.createElement("a");a.href=url;a.download="asignaciones.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ------------------------------------------------------------------ eventos */
+$("lista").value=LISTA_INICIAL.join("\n");
+$("girar").addEventListener("click",girar);
+$("aplicar").addEventListener("click",iniciar);
+$("reiniciar").addEventListener("click",()=>{$("semilla").value="";iniciar();});
+$("copiar").addEventListener("click",copiar);
+$("descargar").addEventListener("click",descargar);
+$("imprimir").addEventListener("click",()=>window.print());
+iniciar();
+</script>
+</body>
+</html>
