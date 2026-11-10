@@ -1,0 +1,24 @@
+# Proyecto uv del grupo de pruebas transversales (A10)
+[project]
+name = "pruebas-mercadoandino"
+version = "0.1.0"
+description = "A10: pruebas transversales de contrato, aceptacion y resiliencia"
+requires-python = ">=3.13"
+# Lo que necesitan los simuladores (fastapi, pydantic-settings) y las pruebas (httpx, pytest, pyyaml)
+dependencies = [
+    "fastapi>=0.115",
+    "httpx>=0.28",
+    "pydantic-settings>=2.6",
+    "pytest>=8.3",
+    "pyyaml>=6.0",
+]
+
+[tool.pytest.ini_options]
+# "." permite importar simuladores/, contrato/ y resiliencia/ desde las pruebas
+pythonpath = ["."]
+# importlib evita choques entre archivos de prueba con el mismo nombre en carpetas distintas
+addopts = "--import-mode=importlib -ra"
+# Marcador propio: "uv run pytest -m resiliencia" corre solo esas pruebas
+markers = [
+    "resiliencia: apaga contenedores reales con docker compose (lento)",
+]
