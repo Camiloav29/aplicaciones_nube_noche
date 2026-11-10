@@ -1,0 +1,35 @@
+﻿version: '3.8'
+
+services:
+  consul:
+    image: hashicorp/consul:1.21
+    container_name: consul
+    ports:
+      - '8500:8500'
+      - '8600:53/udp'
+    command: agent -dev -client=0.0.0.0
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8500/v1/status/leader']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ms-catalogo:
+    build: ./servicios/ms-catalogo
+    container_name: ms-catalogo
+    ports:
+      - '8001:8001'
+    environment:
+      - CONSUL_URL=http://consul:8500
+      - NOMBRE_SERVICIO=ms-catalogo
+      - HOST_ANUNCIADO=ms-catalogo
+      - PUERTO_SERVICIO=8001
+      - CATALOGO_CARGAR_DATOS_EJEMPLO=true
+    depends_on:
+      consul:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'import urllib.request; urllib.request.urlopen("http://localhost:8001/health")']
+      interval: 5s
+      timeout: 3s
+      retries: 5
