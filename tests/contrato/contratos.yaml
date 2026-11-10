@@ -1,0 +1,62 @@
+# Contratos acordados en las fichas A01 a A06: ruta, verbos y códigos de éxito.
+# Si un servicio quita o renombra una ruta, la prueba de contrato falla (cambio rompiente).
+# Agregar rutas nuevas NO rompe nada (cambio compatible).
+
+ms-catalogo:
+  puerto: 8001
+  rutas:
+    /health: {get: 200}
+    /diagnostico: {get: 200}
+    /api/v1/productos: {get: 200, post: 201}
+    /api/v1/productos/{sku}: {get: 200, put: 200, delete: 204}
+
+ms-inventario:
+  puerto: 8002
+  rutas:
+    /health: {get: 200}
+    /diagnostico: {get: 200}
+    /api/v1/diagnostico: {get: 200}
+    /api/v1/existencias: {get: 200, post: 201}
+    /api/v1/existencias/{sku}: {get: 200, put: 200}
+    /api/v1/existencias/{sku}/reservas: {post: 201}
+    /api/v1/existencias/{sku}/reservas/{reserva_id}: {delete: 204}
+
+ms-pagos:
+  puerto: 8004
+  rutas:
+    /health: {get: 200}
+    /diagnostico: {get: 200}
+    /api/v1/autorizaciones: {post: 201}
+    /api/v1/autorizaciones/{autorizacion_id}: {get: 200}
+    /api/v1/autorizaciones/{autorizacion_id}/anulacion: {put: 200}
+
+ms-pedidos:
+  puerto: 8003
+  rutas:
+    /health: {get: 200}
+    /diagnostico: {get: 200}
+    /api/v1/pedidos: {get: 200, post: 201}
+    /api/v1/pedidos/{pedido_id}: {get: 200}
+    /api/v1/diagnostico/inventario: {get: 200}
+
+bff-web:
+  puerto: 8080
+  rutas:
+    /health: {get: 200}
+    /diagnostico: {get: 200}
+    /bff/v1/fichas/{sku}: {get: 200}
+    /bff/v1/catalogo: {get: 200}
+    /bff/v1/compras: {post: 201}
+
+ms-confiabilidad:
+  puerto: 8005
+  rutas:
+    /health: {get: 200}
+    /diagnostico: {get: 200}
+    /api/v1/disponibilidad/serie: {post: 200}
+    /api/v1/disponibilidad/paralelo: {post: 200}
+    /api/v1/disponibilidad/mttr: {get: 200}
+    /api/v1/mtbf/serie: {post: 200}
+    /api/v1/presupuesto-error: {post: 200}
+    /api/v1/latencia/cola-larga: {post: 200}
+    /api/v1/latencia/compuesta: {post: 200}
