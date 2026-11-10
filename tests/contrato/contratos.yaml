@@ -1,6 +1,7 @@
 # Contratos acordados en las fichas A01 a A06: ruta, verbos y códigos de éxito.
 # Si un servicio quita o renombra una ruta, la prueba de contrato falla (cambio rompiente).
 # Agregar rutas nuevas NO rompe nada (cambio compatible).
+# Formato:  servicio -> puerto y rutas;  ruta -> {verbo: código de éxito}
 
 ms-catalogo:
   puerto: 8001

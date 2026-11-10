@@ -17,9 +17,12 @@ jobs:
     name: Reglas de estructura y arquitectura
     runs-on: ubuntu-latest
     steps:
+      # Descarga el código del repositorio en la máquina de GitHub
       - uses: actions/checkout@v4
+      # Script del docente: archivos obligatorios, sin .env, sin requests
       - name: Verificador del docente
         run: bash scripts/verificar_estructura.sh
+      # Falla si alguna capa app/servicios/ importa FastAPI o Starlette
       - name: La capa de servicio no importa FastAPI
         run: |
           if grep -rnE '^\s*(from|import)\s+(fastapi|starlette)' servicios/*/app/servicios/ 2>/dev/null; then
@@ -31,10 +34,12 @@ jobs:
   descubrir:
     name: Descubrir servicios
     runs-on: ubuntu-latest
+    # Salida del job: la lista de servicios en JSON, p. ej. ["ms-confiabilidad","ms-pagos"]
     outputs:
       servicios: ${{ steps.lista.outputs.servicios }}
     steps:
       - uses: actions/checkout@v4
+      # Busca carpetas servicios/*/ con pyproject.toml y las convierte en lista JSON con jq
       - id: lista
         name: Listar servicios con pyproject.toml
         run: |
@@ -46,23 +51,30 @@ jobs:
   pruebas-servicio:
     name: pytest y cobertura · ${{ matrix.servicio }}
     needs: descubrir
+    # Si todavía no hay servicios, este job no corre (una matriz vacía daría error)
     if: needs.descubrir.outputs.servicios != '[]'
     runs-on: ubuntu-latest
+    # fail-fast: false → si un servicio falla, los demás terminan igual
     strategy:
       fail-fast: false
       matrix:
         servicio: ${{ fromJSON(needs.descubrir.outputs.servicios) }}
+    # Todos los comandos se ejecutan dentro de la carpeta del servicio
     defaults:
       run:
         working-directory: servicios/${{ matrix.servicio }}
     steps:
       - uses: actions/checkout@v4
+      # Instala uv (igual que el workflow del docente)
       - name: Instalar uv
         run: python3 -m pip install --user uv && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      # Crea el entorno con las versiones exactas de uv.lock
       - name: Instalar dependencias
         run: uv sync
+      # Corre las pruebas midiendo cobertura de app/; falla si queda por debajo del 70 %
       - name: Pruebas con cobertura (umbral 70 %, ver tests/README.md)
         run: uv run --with pytest-cov pytest -q --cov=app --cov-report=term --cov-fail-under=70
+      # Publica la tabla de cobertura en la pestaña Summary (incluso si las pruebas fallaron)
       - name: Publicar resumen de cobertura
         if: always()
         run: |
@@ -73,14 +85,18 @@ jobs:
   pruebas-transversales:
     name: Contrato, aceptación y resiliencia
     runs-on: ubuntu-latest
+    # Todos los comandos se ejecutan dentro de tests/
     defaults:
       run:
         working-directory: tests
     steps:
       - uses: actions/checkout@v4
+      # Instala uv
       - name: Instalar uv
         run: python3 -m pip install --user uv && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      # Crea el entorno del proyecto de pruebas
       - name: Instalar dependencias
         run: uv sync
+      # Corre contrato, aceptación y resiliencia (lo que necesita servicios reales se salta)
       - name: Ejecutar pytest
         run: uv run pytest -v

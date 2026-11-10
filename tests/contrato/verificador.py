@@ -3,22 +3,25 @@ from pathlib import Path
 
 import yaml
 
+# Ruta del archivo contratos.yaml (en la misma carpeta que este archivo)
 ARCHIVO = Path(__file__).with_name("contratos.yaml")
 
 
+# Lee contratos.yaml y lo devuelve como diccionario de Python
 def cargar_contratos() -> dict:
-    """Lee contratos.yaml y lo devuelve como diccionario."""
     return yaml.safe_load(ARCHIVO.read_text(encoding="utf-8"))
 
 
+# Lista lo que falta (title, version, rutas y verbos). Lista vacía = cumple el contrato
 def incumplimientos(contrato: dict, openapi: dict) -> list[str]:
-    """Lista lo que falta: rutas, verbos, title y version. Lista vacía = cumple el contrato."""
     faltan = []
+    # 1. El openapi debe declarar title y version
     info = openapi.get("info", {})
     if not info.get("title"):
         faltan.append("falta info.title")
     if not info.get("version"):
         faltan.append("falta info.version")
+    # 2. Cada ruta acordada debe existir con cada uno de sus verbos
     publicadas = openapi.get("paths", {})
     for ruta, verbos in contrato["rutas"].items():
         if ruta not in publicadas:
