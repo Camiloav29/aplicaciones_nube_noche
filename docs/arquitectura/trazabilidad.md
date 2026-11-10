@@ -29,24 +29,25 @@ Evidencia tomada del código que **está en `main`** (`servicios/ms-pagos/`) y d
 
 **Regla:** si los diagramas muestran algo que el código no hace, es un defecto del documento. Cuando objetivo e implementación divergen, manda la implementación.
 
-### Estado del código en `main` (revisado el 8 de noviembre de 2026)
+### Estado del código en `main` (revisado el 9 de noviembre de 2026, 19:00)
 
 | Acción | Código en `main` | Contrastado |
 |---|---|---|
 | A03 `ms-pagos` | ✅ integrado (PR #1) | ✅ diagramas ajustados al código |
-| A01 `ms-catalogo`, A02 `ms-inventario`, A04 `ms-pedidos`, A05 `bff-web`, A06 `ms-confiabilidad` | ⏳ pendiente | Se contrastan contra su ficha; se revisarán al integrarse |
-| A07 `config-repo`, A08 Consul, A09 balanceador, A10 pruebas, A12 E2E | ⏳ pendiente | Ídem |
+| A11 Arquitectura | ⏳ PR #2 abierto; `scripts/verificar_estructura.sh` da `[OK]` | — |
+| A01 `ms-catalogo`, A02 `ms-inventario`, A04 `ms-pedidos`, A05 `bff-web`, A06 `ms-confiabilidad` | ❌ sin código (el verificador los marca «Aún no iniciado») | Se contrastan contra su ficha; se revisarán si se integran antes de la entrega |
+| A07 `config-repo`, A08 Consul, A09 balanceador, A10 pruebas, A12 E2E | ❌ sin contenido | Ídem |
 
 ### Divergencias encontradas
 
 | Id | Divergencia | Dónde | Cómo se cierra | Estado |
 |---|---|---|---|---|
 | D1 | El primer borrador del C4-2 mostraba a `ms-pagos` registrándose en Consul; el código **no** lo hace y la ficha A03 no lo exige | `C4-2`, `UML-despliegue` | Se corrigieron los diagramas: `ms-pagos` aparece sin registro en Consul | ✅ cerrada |
-| D2 | `CONVENCIONES.md` §6 ilustra el `409` con `solicitado: 9999`, pero `ms-inventario` limita la reserva a `reserva_maxima_unidades` (1 a 1000) y `ms-pagos` a `unidades` 1 a 1000: con 9999 la respuesta es **`422`**, no `409`. La verificación 6 del E2E fallaría | A02, A03, A12 | Propuesta para A12: que el E2E pida **101** unidades de `CAF-001` (disponible 100). Evidencia en `servicios/ms-pagos/README.md` §4: `101 → 409` | 🟡 propuesta enviada a A12 |
-| D3 | Si `ms-pedidos` en modo `consul` intenta resolver `ms-pagos` por Consul, no lo encontrará (pagos no se registra) | A03, A04 | Opción a: `ms-pedidos` usa `PEDIDOS_URL_PAGOS` (estático) para pagos y Consul solo para inventario, como dice la ficha A04. Opción b: agregar registro en Consul a `ms-pagos` | 🟡 por acordar con A04 |
+| D2 | `CONVENCIONES.md` §6 ilustra el `409` con `solicitado: 9999`, pero `ms-inventario` limita la reserva a `reserva_maxima_unidades` (1 a 1000) y `ms-pagos` a `unidades` 1 a 1000: con 9999 la respuesta es **`422`**, no `409`. La verificación 6 del E2E fallaría | A02, A03, A12 | Propuesta para A12: que el E2E pida **101** unidades de `CAF-001` (disponible 100). Evidencia en `servicios/ms-pagos/README.md` §4: `101 → 409` | 🟡 propuesta enviada a A12 · sin respuesta al 9 nov |
+| D3 | Si `ms-pedidos` en modo `consul` intenta resolver `ms-pagos` por Consul, no lo encontrará (pagos no se registra) | A03, A04 | Opción a: `ms-pedidos` usa `PEDIDOS_URL_PAGOS` (estático) para pagos y Consul solo para inventario, como dice la ficha A04. Opción b: agregar registro en Consul a `ms-pagos` | 🟡 por acordar con A04 · sin respuesta al 9 nov |
 | D4 | `ms-pagos` consulta el disponible con una URL fija (`PAGOS_URL_INVENTARIO`), que apunta a **una** réplica; como cada réplica de inventario tiene su propia memoria, el disponible puede diferir del que vio `ms-pedidos` | A02, A03 | En la saga no afecta: `ms-pedidos` envía `reserva_id` y pagos **omite** la consulta a inventario. Solo aplica a llamadas directas sin `reserva_id`. Solución definitiva: base de datos compartida por las réplicas de inventario (una base **por servicio**, no por réplica) | ✅ mitigada · documentada |
-| D5 | Formato del dinero: `ms-pagos` devuelve `total` como **número** JSON (internamente `Decimal`); `bff-web` publica `precio` como **texto**; `ms-catalogo` con Pydantic v2 serializa `Decimal` como texto | A01, A03, A04, A05 | `ms-pagos` acepta precio en número o texto (`Decimal(str(valor))`). A04 debe hacer lo mismo con `total`. Se acuerda: entre servicios se acepta ambos; hacia el canal, texto | 🟡 por confirmar con A04 y A05 |
-| D6 | Si `ms-pedidos` responde `503 "ms-pagos no disponible"`, la regla 6 de A05 podría leerse como «5xx de la dependencia → `502 ms-pedidos respondio mal`», y el cliente perdería el nombre del servicio realmente caído | A05 | Propuesta: `bff-web` **propaga** `503`/`504` de `ms-pedidos` con su `detail`, y solo responde `502`/`503` propios cuando el que falla es `ms-pedidos` mismo. Así quedó dibujado en la secuencia 3 | 🟡 por acordar con A05 |
+| D5 | Formato del dinero: `ms-pagos` devuelve `total` como **número** JSON (internamente `Decimal`); `bff-web` publica `precio` como **texto**; `ms-catalogo` con Pydantic v2 serializa `Decimal` como texto | A01, A03, A04, A05 | `ms-pagos` acepta precio en número o texto (`Decimal(str(valor))`). A04 debe hacer lo mismo con `total`. Se acuerda: entre servicios se acepta ambos; hacia el canal, texto | 🟡 por confirmar con A04 y A05 · sin respuesta al 9 nov |
+| D6 | Si `ms-pedidos` responde `503 "ms-pagos no disponible"`, la regla 6 de A05 podría leerse como «5xx de la dependencia → `502 ms-pedidos respondio mal`», y el cliente perdería el nombre del servicio realmente caído | A05 | Propuesta: `bff-web` **propaga** `503`/`504` de `ms-pedidos` con su `detail`, y solo responde `502`/`503` propios cuando el que falla es `ms-pedidos` mismo. Así quedó dibujado en la secuencia 3 | 🟡 por acordar con A05 · sin respuesta al 9 nov |
 | D7 | `servicios/ms-pagos/LEEME-PENDIENTE.md` sigue en `main` aunque el servicio ya tiene `README.md` | A03 | Se elimina en el PR de A11 | ✅ cerrada en este PR |
 
 > **Pendiente para la entrega:** repetir esta revisión cuando los demás servicios lleguen a `main` (puertos, rutas, nombres de variables, códigos de estado) y actualizar esta tabla.
