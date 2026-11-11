@@ -70,7 +70,7 @@ Requisitos: Python 3.13 y [`uv`](https://docs.astral.sh/uv/).
 cd servicios/ms-pagos
 uv sync
 cp .env.example .env          # opcional
-uv run uvicorn app.main:app --reload --port 8004
+uv run python -m app                    # puerto de PUERTO_SERVICIO (defecto 8004)
 ```
 
 - Salud: http://localhost:8004/health
@@ -87,12 +87,15 @@ uv run pytest -q
 ```bash
 docker build -t ms-pagos .
 docker run --rm -p 8004:8004 -e PAGOS_ENTORNO=dev ms-pagos
+# otro puerto, sin recompilar:
+docker run --rm -p 8014:8014 -e PUERTO_SERVICIO=8014 ms-pagos
 ```
 
 ## Configuración
 
 | Variable | Defecto | Descripción |
 |---|---|---|
+| `PUERTO_SERVICIO` (o `PAGOS_PUERTO`) | `8004` | Puerto de escucha; no está fijo en el código ni en el `Dockerfile` |
 | `PAGOS_ENTORNO` | `local` | `local`, `dev`, `test` o `prod` (en `prod` se apaga `/docs`) |
 | `PAGOS_NIVEL_LOG` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` (se normaliza a mayúsculas) |
 | `PAGOS_DOCS_HABILITADA` | `true` | Publica `/docs` |
@@ -114,7 +117,7 @@ Para reproducirla, en tres terminales dentro de `servicios/ms-pagos`:
 ```bash
 uv run python scripts/dependencias_simuladas.py catalogo     # 8001
 uv run python scripts/dependencias_simuladas.py inventario   # 8002
-uv run uvicorn app.main:app --port 8004
+uv run python -m app
 ```
 
 **1. Salud**
@@ -173,7 +176,7 @@ PUT /api/v1/autorizaciones/{id}/anulacion  → 200 "estado":"ANULADA"   (dos vec
 
 ```text
 $ uv run pytest -q
-28 passed
+31 passed
 ```
 
 Cubren: 201, 402, 404, 409, 422, idempotencia, GET, anulación idempotente, 502/503/504 con `httpx.MockTransport`, ejecución en paralelo (`gather`) y 503 en menos de 4 s contra un puerto real cerrado.

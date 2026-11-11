@@ -9,7 +9,7 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 NIVELES_LOG = {"DEBUG", "INFO", "WARNING", "ERROR"}
@@ -35,6 +35,16 @@ class Configuracion(BaseSettings):
     # Reglas de negocio
     monto_maximo: Decimal = Field(default=Decimal("1000000.00"), gt=0)
     cargar_datos_ejemplo: bool = False
+
+    # Red: el puerto NO va fijo en el código ni en el Dockerfile.
+    # Se lee de PUERTO_SERVICIO (convención común, CONVENCIONES §5) o de PAGOS_PUERTO.
+    host: str = "0.0.0.0"
+    puerto: int = Field(
+        default=8004,
+        ge=1,
+        le=65535,
+        validation_alias=AliasChoices("PUERTO_SERVICIO", "PAGOS_PUERTO"),
+    )
 
     # Cliente HTTP (CONVENCIONES §8)
     timeout_connect: float = Field(default=2.0, gt=0)

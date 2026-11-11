@@ -13,6 +13,8 @@ COPY app ./app
 ENV PATH="/servicio/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
+# El puerto se toma de PUERTO_SERVICIO (por defecto 8004 en config.py).
+# EXPOSE es solo documentación; no fija el puerto real.
 EXPOSE 8004
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]
+CMD ["python", "-m", "app"]

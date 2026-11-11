@@ -61,3 +61,20 @@ def test_valor_invalido_impide_arranque(monkeypatch, variable, valor):
     monkeypatch.setenv(variable, valor)
     with pytest.raises(ValidationError):
         Configuracion()
+
+
+def test_puerto_por_defecto_es_8004(monkeypatch):
+    monkeypatch.delenv("PUERTO_SERVICIO", raising=False)
+    monkeypatch.delenv("PAGOS_PUERTO", raising=False)
+    assert Configuracion().puerto == 8004
+
+
+def test_puerto_se_configura_por_entorno(monkeypatch):
+    monkeypatch.setenv("PUERTO_SERVICIO", "8014")
+    assert Configuracion().puerto == 8014
+
+
+def test_puerto_invalido_impide_arranque(monkeypatch):
+    monkeypatch.setenv("PUERTO_SERVICIO", "70000")
+    with pytest.raises(ValidationError):
+        Configuracion()
